@@ -1,0 +1,4 @@
+package: main
+generate:
+  models: true
+output: encore.gen.go
