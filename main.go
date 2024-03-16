@@ -6,6 +6,7 @@ package main
 
 
 import (
+	"log"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -13,6 +14,7 @@ import (
 	"net/url"
 	"path/filepath"
 	"time"
+	"errors"
 )
 
 func getJobs() (*PagedModelEntityModelEncoreJob, error) {
@@ -21,6 +23,12 @@ func getJobs() (*PagedModelEntityModelEncoreJob, error) {
 		return nil, err
 	}
 	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	if resp.StatusCode != 200 {
+		return nil, errors.New(fmt.Sprintf("Failed to get jobs code=%d body=%s", resp.StatusCode, string(body)))
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -80,13 +88,15 @@ func main() {
 	fmt.Printf("\x1b[s")
 	var lines = 0
 	for true {
+		fmt.Printf("\x1b[%dA", lines)
+		fmt.Printf("\x1b[0J")
 		jobPage, err := getJobs();
 		if err != nil {
-			fmt.Printf("Error: %s\n", err)
+			log.Printf("Error: %s\n", err)
+			lines=1
 			//		return;
 		} else {
 			//		fmt.Printf("\x1b[u")
-			fmt.Printf("\x1b[%dA", lines)
 			//		fmt.Printf("\x1b[0J")
 			lines = 0
 			for _, job := range *jobPage.Embedded.EncoreJobs {
