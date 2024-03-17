@@ -39,8 +39,23 @@ func getJobs() (*PagedModelEntityModelEncoreJob, error) {
 		return nil, err;
 	}
 	return &jobPage, nil
-
 }
+
+
+func getJobsRoutine(jobsOut chan PagedModelEntityModelEncoreJob, errors chan error) {
+	for true {
+		//		log.Printf("Getting jobs")
+		jobs, err := getJobs()
+		if err != nil {
+			errors <- err
+		} else {
+			//			log.Printf("Sending jobs")
+			jobsOut <- *jobs
+		}
+		time.Sleep(1 * time.Second)
+	}
+}
+
 
 func formatDate(date time.Time) string {
 	return fmt.Sprintf("%04d-%02d-%02d %02d:%02d",
@@ -85,11 +100,30 @@ func printJob(job EntityModelEncoreJob) {
 
 func main() {
 	//var jobPfage PagedModelEntityModelEncoreJob
+	jobChannel := make(chan PagedModelEntityModelEncoreJob)
+	errorChannel := make(chan error)
+	
 	fmt.Printf("\x1b[s")
 	var lines = 0
+	go getJobsRoutine(jobChannel, errorChannel)
 	for true {
-		fmt.Printf("\x1b[%dA", lines)
-		fmt.Printf("\x1b[0J")
+		//		fmt.Printf("lines=%d", lines)
+				fmt.Printf("\x1b[%dA", lines) // Move cursor up
+		//				fmt.Printf("\x1b[0J") // Clear to end of screan
+		//		var err error
+		//		var jobPage PagedModelEntityModelEncoreJob
+		select {
+		case err := <- errorChannel:
+			log.Printf("Error: %s\n", err)
+			lines=1
+		case jobPage := <- jobChannel:
+			lines = 0
+			for _, job := range *jobPage.Embedded.EncoreJobs {
+				printJob(job)
+				lines++
+			}
+		}
+		/*
 		jobPage, err := getJobs();
 		if err != nil {
 			log.Printf("Error: %s\n", err)
@@ -105,6 +139,7 @@ func main() {
 			}
 		}
 		time.Sleep(1 * time.Second)
+				*/
 	}
 	//	log.Printf("PageNo: %d", *jobPage.Page.Number)
 }
