@@ -11,8 +11,8 @@ import (
 	"io/ioutil"
 	"net/http"
 	"encoding/json"
-	"net/url"
-	"path/filepath"
+	//	"net/url"
+	//	"path/filepath"
 	"time"
 	"errors"
 )
@@ -63,22 +63,8 @@ func formatDate(date time.Time) string {
 }
 
 func printJob(job EntityModelEncoreJob) {
-	var progressStr = ""
-	for i :=1; i <= 10; i++ {
-		if int(*job.Progress) >= i*10 {
-			progressStr = progressStr + "#"
-		} else {
-			progressStr = progressStr + " "
-		}
-	}
-	var inputsStr = ""
-	for i := 0; i < len(job.Inputs); i++ {
-		url, _ := url.Parse(job.Inputs[i].Uri)
-		if i > 0 {
-			inputsStr = inputsStr + ","
-		}
-		inputsStr = inputsStr + filepath.Base(url.Path)
-	}
+	progressStr := formatProgressBar(job)
+	inputsStr := formatInputs(job)
 	color := 0
 	switch {
 	case *job.Status == "FAILED":
@@ -88,7 +74,7 @@ func printJob(job EntityModelEncoreJob) {
 	case *job.Status == "IN_PROGRESS":
 		color = 33;
 	}
-	fmt.Printf("[%d]%-30s %12s \x1b[%dm%11s\x1b[0m %20s %3d%% %10s\n", len(job.Inputs),
+	fmt.Printf("%-30s %12s \x1b[%dm%11s\x1b[0m %20s %3d%% %10s\n",
 		inputsStr,
 		formatDate(*job.CreatedDate),
 		color,
