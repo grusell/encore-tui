@@ -56,12 +56,12 @@ func getJobsRoutine(jobsOut chan PagedModelEntityModelEncoreJob, errors chan err
 	}
 }
 
-
+/*
 func formatDate(date time.Time) string {
 	return fmt.Sprintf("%04d-%02d-%02d %02d:%02d",
 		date.Year(), date.Month(), date.Day(), date.Hour(), date.Minute())
 }
-
+*/
 func printJob(job EntityModelEncoreJob) {
 	progressStr := formatProgressBar(job)
 	inputsStr := formatInputs(job)
