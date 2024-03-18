@@ -14,25 +14,28 @@ type JobsTable struct {
 
 	// Nevermind the hard-coded values, this is just an example.
 	//	data       [200][5]string
-	jobPage PagedModelEntityModelEncoreJob
+	jobs []EntityModelEncoreJob
 }
 
 func (d *JobsTable) GetCell(row, column int) *tview.TableCell {
-	job := (*d.jobPage.Embedded.EncoreJobs)[row]
+	if len(d.jobs) == 0 {
+		return tview.NewTableCell(fmt.Sprintf("data-%d", column))
+	}
+	job := d.jobs[row]
 	var content string
 	switch column {
 	case 0:
-		content = formatInputs(job)
+		return tview.NewTableCell(formatInputs(job)).SetExpansion(3)
 	case 1:
-		content = formatDate(*job.CreatedDate)
+		return tview.NewTableCell(formatDate(*job.CreatedDate)).SetExpansion(1)
 	case 2:
-		content = fmt.Sprintf("%s", *job.Status)
+		return tview.NewTableCell(formatStatus(job.Status)).SetExpansion(1)
 	case 3:
-		content = job.Profile
+		return tview.NewTableCell(job.Profile).SetExpansion(1)
 	case 4:
-		content = fmt.Sprintf("%d%%", *job.Progress)
+		return tview.NewTableCell(fmt.Sprintf("%d%%", *job.Progress))
 	case 5:
-		content = formatProgressBar(job)
+		return tview.NewTableCell(formatProgressBar(job))
 	default:
 		content = ""
 	}
@@ -42,7 +45,10 @@ func (d *JobsTable) GetCell(row, column int) *tview.TableCell {
 }
 
 func (d *JobsTable) GetRowCount() int {
-	return len(*d.jobPage.Embedded.EncoreJobs)
+	if len(d.jobs) == 0 {
+		return 1
+	}
+	return len(d.jobs)
 }
 
 func (d *JobsTable) GetColumnCount() int {
@@ -50,8 +56,8 @@ func (d *JobsTable) GetColumnCount() int {
 	return 6
 }
 
-func (d *JobsTable) SetData(jobPage PagedModelEntityModelEncoreJob) {
-	d.jobPage = jobPage
+func (d *JobsTable) SetData(jobs []EntityModelEncoreJob) {
+	d.jobs = jobs
 }
 
 func formatInputs(job EntityModelEncoreJob) string {
@@ -73,6 +79,19 @@ func filenameFromUrl(urlStr string) string {
 func formatDate(date time.Time) string {
 	return fmt.Sprintf("%04d-%02d-%02d %02d:%02d",
 		date.Year(), date.Month(), date.Day(), date.Hour(), date.Minute())
+}
+
+func formatStatus(status *EntityModelEncoreJobStatus) string {
+	var color string = ""
+	switch *status {
+	case "SUCCESSFUL":
+		color="green"
+	case "FAILED":
+		color="red"
+	case "IN_PROGRESS":
+		color="blue"
+	}
+	return fmt.Sprintf("[%s]%s", color, *status)
 }
 
 

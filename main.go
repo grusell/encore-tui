@@ -6,7 +6,7 @@ package main
 
 
 import (
-	"log"
+	//	"log"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -15,6 +15,7 @@ import (
 	//	"path/filepath"
 	"time"
 	"errors"
+	"github.com/rivo/tview"
 )
 
 func getJobs() (*PagedModelEntityModelEncoreJob, error) {
@@ -42,17 +43,31 @@ func getJobs() (*PagedModelEntityModelEncoreJob, error) {
 }
 
 
-func getJobsRoutine(jobsOut chan PagedModelEntityModelEncoreJob, errors chan error) {
+func getJobsRoutine(app *tview.Application, jobsTable *JobsTable, updated *tview.TextView) {
 	for true {
 		//		log.Printf("Getting jobs")
 		jobs, err := getJobs()
 		if err != nil {
-			errors <- err
+			panic(err)
 		} else {
-			//			log.Printf("Sending jobs")
-			jobsOut <- *jobs
+						app.QueueUpdateDraw(func() {
+							jobsTable.SetData(*jobs.Embedded.EncoreJobs)
+							t := time.Now()
+							updated.SetText(t.Format(time.TimeOnly))
+						})
+			//			jobsOut <- *jobs
 		}
-		time.Sleep(1 * time.Second)
+		for i:= 0; i < 10; i++ {
+			time.Sleep(100 * time.Millisecond)
+			/*
+			select {
+			case q := <-quit:
+				return
+			default
+				time.Sleep(1 * time.Second)
+			}
+			*/
+		}
 	}
 }
 
@@ -62,70 +77,30 @@ func formatDate(date time.Time) string {
 		date.Year(), date.Month(), date.Day(), date.Hour(), date.Minute())
 }
 */
-func printJob(job EntityModelEncoreJob) {
-	progressStr := formatProgressBar(job)
-	inputsStr := formatInputs(job)
-	color := 0
-	switch {
-	case *job.Status == "FAILED":
-		color = 31;
-	case *job.Status == "SUCCESSFUL":
-		color = 32;
-	case *job.Status == "IN_PROGRESS":
-		color = 33;
-	}
-	fmt.Printf("%-30s %12s \x1b[%dm%11s\x1b[0m %20s %3d%% %10s\n",
-		inputsStr,
-		formatDate(*job.CreatedDate),
-		color,
-		*job.Status,
-		job.Profile,
-		*job.Progress,
-		progressStr)
-}
+
+
 
 func main() {
 	//var jobPfage PagedModelEntityModelEncoreJob
-	jobChannel := make(chan PagedModelEntityModelEncoreJob)
-	errorChannel := make(chan error)
+	//	jobChannel := make(chan PagedModelEntityModelEncoreJob)
+	//	errorChannel := make(chan error)
+	var jobsTable JobsTable
+	//	quitChannel := make(chan int)
+
 	
-	fmt.Printf("\x1b[s")
-	var lines = 0
-	go getJobsRoutine(jobChannel, errorChannel)
-	for true {
-		//		fmt.Printf("lines=%d", lines)
-				fmt.Printf("\x1b[%dA", lines) // Move cursor up
-		//				fmt.Printf("\x1b[0J") // Clear to end of screan
-		//		var err error
-		//		var jobPage PagedModelEntityModelEncoreJob
-		select {
-		case err := <- errorChannel:
-			log.Printf("Error: %s\n", err)
-			lines=1
-		case jobPage := <- jobChannel:
-			lines = 0
-			for _, job := range *jobPage.Embedded.EncoreJobs {
-				printJob(job)
-				lines++
-			}
-		}
-		/*
-		jobPage, err := getJobs();
-		if err != nil {
-			log.Printf("Error: %s\n", err)
-			lines=1
-			//		return;
-		} else {
-			//		fmt.Printf("\x1b[u")
-			//		fmt.Printf("\x1b[0J")
-			lines = 0
-			for _, job := range *jobPage.Embedded.EncoreJobs {
-				printJob(job)
-				lines++
-			}
-		}
-		time.Sleep(1 * time.Second)
-				*/
+	app := tview.NewApplication()
+	table := tview.NewTable().SetContent(&jobsTable).SetSelectable(true, false)
+	updated := tview.NewTextView().SetSize(1,0).SetLabel("Last updated:  ")
+	flex := tview.NewFlex()
+	flex.SetTitle("Encore TUI")
+	flex.SetBorder(true)
+	flex.SetDirection(tview.FlexRow)
+	flex.AddItem(table, 0, 1, true)
+	flex.AddItem(updated, 1, 0, false)
+
+	
+	go getJobsRoutine(app, &jobsTable, updated)
+	if err := app.SetRoot(flex, true).SetFocus(flex).Run(); err != nil {
+		panic(err)
 	}
-	//	log.Printf("PageNo: %d", *jobPage.Page.Number)
 }
