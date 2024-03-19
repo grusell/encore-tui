@@ -16,6 +16,7 @@ import (
 	"time"
 	"errors"
 	"github.com/rivo/tview"
+	"github.com/gdamore/tcell/v2"
 )
 
 func getJobs() (*PagedModelEntityModelEncoreJob, error) {
@@ -87,9 +88,30 @@ func main() {
 	var jobsTable JobsTable
 	//	quitChannel := make(chan int)
 
-	
+	jobView := tview.NewTextView()
+	jobView.SetBorder(true)
+	jobView.SetText("HEJ")
 	app := tview.NewApplication()
+	pages := tview.NewPages()
+
+	jobView.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		if event.Key() == tcell.KeyEscape {
+			pages.HidePage("job")
+			return nil
+		}
+		return event
+	})
+	
 	table := tview.NewTable().SetContent(&jobsTable).SetSelectable(true, false)
+	table.SetSelectedFunc(func(row int, column int) {
+		job := jobsTable.jobs[row]
+		jobJson,_ := json.MarshalIndent(job, "", "  ")
+		jobView.SetTitle(fmt.Sprintf("Job %s", job.Id))
+		x,y,w,h := pages.GetRect()
+		jobView.SetText(string(jobJson))
+		jobView.SetRect(x+2,y+2,w-4,h-4)
+		pages.ShowPage("job")
+	})
 	updated := tview.NewTextView().SetSize(1,0).SetLabel("Last updated:  ")
 	flex := tview.NewFlex()
 	flex.SetTitle("Encore TUI")
@@ -98,9 +120,15 @@ func main() {
 	flex.AddItem(table, 0, 1, true)
 	flex.AddItem(updated, 1, 0, false)
 
+
+	pages.AddPage("main", flex, true, true)
+	pages.AddPage("job", jobView, false, false)
+
+	
+
 	
 	go getJobsRoutine(app, &jobsTable, updated)
-	if err := app.SetRoot(flex, true).SetFocus(flex).Run(); err != nil {
+	if err := app.SetRoot(pages, true).SetFocus(pages).Run(); err != nil {
 		panic(err)
 	}
 }
