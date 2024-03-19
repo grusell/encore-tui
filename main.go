@@ -17,6 +17,7 @@ import (
 	"errors"
 	"github.com/rivo/tview"
 	"github.com/gdamore/tcell/v2"
+	"github.com/alecthomas/chroma/quick"
 )
 
 func getJobs() (*PagedModelEntityModelEncoreJob, error) {
@@ -90,7 +91,6 @@ func main() {
 
 	jobView := tview.NewTextView()
 	jobView.SetBorder(true)
-	jobView.SetText("HEJ")
 	app := tview.NewApplication()
 	pages := tview.NewPages()
 
@@ -101,6 +101,7 @@ func main() {
 		}
 		return event
 	})
+	jobView.SetDynamicColors(true)
 	
 	table := tview.NewTable().SetContent(&jobsTable).SetSelectable(true, false)
 	table.SetSelectedFunc(func(row int, column int) {
@@ -108,7 +109,10 @@ func main() {
 		jobJson,_ := json.MarshalIndent(job, "", "  ")
 		jobView.SetTitle(fmt.Sprintf("Job %s", job.Id))
 		x,y,w,h := pages.GetRect()
-		jobView.SetText(string(jobJson))
+		jobView.Clear()
+		writer := tview.ANSIWriter(jobView)
+		quick.Highlight(writer, fmt.Sprint(string(jobJson)), "json", "terminal256", "dracula")
+		//		jobView.SetText(string(jobJson))
 		jobView.SetRect(x+2,y+2,w-4,h-4)
 		pages.ShowPage("job")
 	})
