@@ -1,4 +1,4 @@
-module github.com/grusell/encore-cli
+module github.com/grusell/encore-tui
 
 go 1.22.1
 
