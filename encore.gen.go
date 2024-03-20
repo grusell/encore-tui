@@ -51,12 +51,6 @@ type EncoreJobRequestBody struct {
 	// BaseName Base filename of output files
 	BaseName string `json:"baseName"`
 
-	// CompletedDate The time for when the EncoreJob was completed (fail or success)
-	CompletedDate *time.Time `json:"completedDate"`
-
-	// CreatedDate The Creation date for the EncoreJob
-	CreatedDate *time.Time `json:"createdDate,omitempty"`
-
 	// DebugOverlay Instruct Encore to overlay encoding metadata on the encoded video stream
 	DebugOverlay bool `json:"debugOverlay"`
 
@@ -73,12 +67,6 @@ type EncoreJobRequestBody struct {
 	// LogContext Key/Values to append to the MDC log context
 	LogContext map[string]string `json:"logContext"`
 
-	// Message The exception message, if the EncoreJob failed
-	Message *string `json:"message"`
-
-	// Output Analyzed models of the output files
-	Output *[]MediaFile `json:"output,omitempty"`
-
 	// OutputFolder A directory path to where the output should be written
 	OutputFolder string `json:"outputFolder"`
 
@@ -90,10 +78,6 @@ type EncoreJobRequestBody struct {
 
 	// ProfileParams Properties for evaluation of spring spel expressions in profile
 	ProfileParams map[string]map[string]interface{} `json:"profileParams"`
-
-	// Progress The EncoreJob progress
-	Progress *int32 `json:"progress,omitempty"`
-
 	// ProgressCallbackUri An url to which the progress status callback should be directed
 	ProgressCallbackUri *string `json:"progressCallbackUri"`
 
@@ -102,15 +86,6 @@ type EncoreJobRequestBody struct {
 
 	// SegmentLength Transcode segments of specified length in seconds in parallell. Should be a multiple of target GOP.
 	SegmentLength *float64 `json:"segmentLength"`
-
-	// Speed The Encoding speed of the job (compared to it's play speed/input duration)
-	Speed *float64 `json:"speed"`
-
-	// StartedDate The time for when the EncoreJob was picked from the queue)
-	StartedDate *time.Time `json:"startedDate"`
-
-	// Status The Job Status
-	Status *EncoreJobRequestBodyStatus `json:"status,omitempty"`
 
 	// ThumbnailTime Time in seconds for when the thumbnail should be picked. Overrides profile configuration for thumbnails
 	ThumbnailTime *float64 `json:"thumbnailTime"`

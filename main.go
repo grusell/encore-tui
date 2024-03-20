@@ -18,6 +18,7 @@ import (
 	"github.com/rivo/tview"
 	"github.com/gdamore/tcell/v2"
 	"github.com/alecthomas/chroma/quick"
+	"gopkg.in/yaml.v3"
 )
 
 func getJobs() (*PagedModelEntityModelEncoreJob, error) {
@@ -94,24 +95,49 @@ func main() {
 	app := tview.NewApplication()
 	pages := tview.NewPages()
 
-	jobView.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+	newJob := tview.NewForm()
+	newJob.SetTitle("Create job")
+	newJob.SetBorder(true)
+	newJob.AddInputField("Input file", "", 90, nil, nil)
+	newJob.AddButton("Create job", func() {
+		pages.SwitchToPage("main")
+	})
+	newJob.AddButton("Cancel",  func() {
+		pages.SwitchToPage("main")
+	})
+	
+	app.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		if event.Rune() == 'N' {
+			x,y,w,h := pages.GetRect()
+			newJob.SetRect(x+2,y+2,w-4,h-4)
+			pages.ShowPage("newJob")
+		}
 		if event.Key() == tcell.KeyEscape {
-			pages.HidePage("job")
+			pages.SwitchToPage("main")
 			return nil
 		}
 		return event
 	})
+	
+	jobView.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+
+		return event
+	})
 	jobView.SetDynamicColors(true)
+
+	profiles := []string {"program", "x264-1080p-medium"}
+	newJob.AddDropDown("Profile", profiles, 0, nil)
 	
 	table := tview.NewTable().SetContent(&jobsTable).SetSelectable(true, false)
 	table.SetSelectedFunc(func(row int, column int) {
 		job := jobsTable.jobs[row]
-		jobJson,_ := json.MarshalIndent(job, "", "  ")
+		//		jobJson,_ := json.MarshalIndent(job, "", "  ")
+		jobJson,_ := yaml.Marshal(job)
 		jobView.SetTitle(fmt.Sprintf("Job %s", job.Id))
 		x,y,w,h := pages.GetRect()
 		jobView.Clear()
 		writer := tview.ANSIWriter(jobView)
-		quick.Highlight(writer, fmt.Sprint(string(jobJson)), "json", "terminal256", "dracula")
+		quick.Highlight(writer, fmt.Sprint(string(jobJson)), "yaml", "terminal256", "dracula")
 		//		jobView.SetText(string(jobJson))
 		jobView.SetRect(x+2,y+2,w-4,h-4)
 		pages.ShowPage("job")
@@ -127,6 +153,7 @@ func main() {
 
 	pages.AddPage("main", flex, true, true)
 	pages.AddPage("job", jobView, false, false)
+	pages.AddPage("newJob", newJob, false, false)
 
 	
 
