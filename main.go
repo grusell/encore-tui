@@ -8,68 +8,45 @@ package main
 import (
 	//	"log"
 	"fmt"
-	"io/ioutil"
-	"net/http"
-	"encoding/json"
+
+	//	"encoding/json"
 	//	"net/url"
 	//	"path/filepath"
 	"time"
-	"errors"
+	"os"
 	"github.com/rivo/tview"
 	"github.com/gdamore/tcell/v2"
 	"github.com/alecthomas/chroma/quick"
 	"gopkg.in/yaml.v3"
 )
 
-func getJobs() (*PagedModelEntityModelEncoreJob, error) {
-	resp, err := http.Get("http://localhost:8080/encoreJobs?sort=createdDate,desc")
-	if err != nil {
-		return nil, err
-	}
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-	if resp.StatusCode != 200 {
-		return nil, errors.New(fmt.Sprintf("Failed to get jobs code=%d body=%s", resp.StatusCode, string(body)))
-	}
-	if err != nil {
-		return nil, err
-	}
-	var jobPage PagedModelEntityModelEncoreJob
-	//	jobPage.Links = &[]Link{}
-	err = json.Unmarshal(body, &jobPage)
-	if err != nil {
-		return nil, err;
-	}
-	return &jobPage, nil
+var encoreClient *EncoreClient = NewEncoreClient(getEnv("ENCORE_URL", "http://localhost:8080"))
+
+
+func getEnv(key string, defaultValue string) string {
+	val, ok := os.LookupEnv(key)
+		if !ok {
+			return defaultValue
+		} else {
+			return val
+		}
 }
 
 
 func getJobsRoutine(app *tview.Application, jobsTable *JobsTable, updated *tview.TextView) {
 	for true {
-		//		log.Printf("Getting jobs")
-		jobs, err := getJobs()
+		jobs, err := encoreClient.getJobs()
 		if err != nil {
 			panic(err)
 		} else {
-						app.QueueUpdateDraw(func() {
-							jobsTable.SetData(*jobs.Embedded.EncoreJobs)
-							t := time.Now()
-							updated.SetText(t.Format(time.TimeOnly))
-						})
-			//			jobsOut <- *jobs
+			app.QueueUpdateDraw(func() {
+				jobsTable.SetData(*jobs.Embedded.EncoreJobs)
+				t := time.Now()
+				updated.SetText(t.Format(time.TimeOnly))
+			})
 		}
 		for i:= 0; i < 10; i++ {
 			time.Sleep(100 * time.Millisecond)
-			/*
-			select {
-			case q := <-quit:
-				return
-			default
-				time.Sleep(1 * time.Second)
-			}
-			*/
 		}
 	}
 }
@@ -82,7 +59,6 @@ func formatDate(date time.Time) string {
 */
 
 
-
 func main() {
 	//var jobPfage PagedModelEntityModelEncoreJob
 	//	jobChannel := make(chan PagedModelEntityModelEncoreJob)
@@ -92,6 +68,7 @@ func main() {
 
 	jobView := tview.NewTextView()
 	jobView.SetBorder(true)
+	jobView.SetDynamicColors(true)
 	app := tview.NewApplication()
 	pages := tview.NewPages()
 
@@ -118,12 +95,7 @@ func main() {
 		}
 		return event
 	})
-	
-	jobView.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 
-		return event
-	})
-	jobView.SetDynamicColors(true)
 
 	profiles := []string {"program", "x264-1080p-medium"}
 	newJob.AddDropDown("Profile", profiles, 0, nil)
