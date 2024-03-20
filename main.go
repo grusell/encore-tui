@@ -58,36 +58,85 @@ func formatDate(date time.Time) string {
 }
 */
 
+type JobView struct {
+	name string
+	*tview.TextView
+	pages *tview.Pages
+}
+
+func NewJobView(name string, pages *tview.Pages) *JobView {
+	//	tv := tview.NewTextView()
+	jv := JobView{name, tview.NewTextView(), pages}
+	jv.SetBorder(true)
+	jv.SetDynamicColors(true)
+	return &jv
+}
+
+func (jv *JobView) Show(job EntityModelEncoreJob) {
+		//		jobJson,_ := json.MarshalIndent(job, "", "  ")
+		jobJson,_ := yaml.Marshal(job)
+		jv.SetTitle(fmt.Sprintf("Job %s", job.Id))
+		x,y,w,h := jv.pages.GetRect()
+		jv.Clear()
+		writer := tview.ANSIWriter(jv)
+		quick.Highlight(writer, fmt.Sprint(string(jobJson)), "yaml", "terminal256", "dracula")
+		//		jobView.SetText(string(jobJson))
+		jv.SetRect(x+2,y+2,w-4,h-4)
+		jv.pages.ShowPage(jv.name)
+}
+
+type JobCreate struct {
+	name string
+	*tview.Form
+	pages *tview.Pages
+}
+
+func NewJobCreate(name string, pages *tview.Pages) *JobCreate {
+	profiles := []string {"program", "x264-1080p-medium"}
+	jc := JobCreate{name, tview.NewForm(), pages}
+	jc.SetTitle("Create job")
+	jc.SetBorder(true)
+	jc.AddInputField("Input file", "", 90, nil, nil)
+	jc.AddDropDown("Profile", profiles, 0, nil)
+
+	jc.AddButton("Create job", func() {
+		jc.PostJob()
+		pages.HidePage(name)
+	})
+	jc.AddButton("Cancel",  func() {
+		pages.HidePage(name)
+	})
+	return &jc
+}
+
+func (jc *JobCreate) Show() {
+	x,y,w,h := jc.pages.GetRect()
+	jc.SetRect(x+2,y+2,w-4,h-4)
+	jc.pages.ShowPage(jc.name)
+}
+
+func (jc *JobCreate) PostJob() {
+	input := jc.GetFormItemByLabel("Input file").(*tview.InputField).GetText()
+	_, profile := jc.GetFormItemByLabel("Profile").(*tview.DropDown).GetCurrentOption()
+	job := CreateJob(input, profile)
+	_, err := encoreClient.postJob(job)
+	if err != nil {
+		panic(err)
+	}
+}
+
 
 func main() {
-	//var jobPfage PagedModelEntityModelEncoreJob
-	//	jobChannel := make(chan PagedModelEntityModelEncoreJob)
-	//	errorChannel := make(chan error)
 	var jobsTable JobsTable
-	//	quitChannel := make(chan int)
 
-	jobView := tview.NewTextView()
-	jobView.SetBorder(true)
-	jobView.SetDynamicColors(true)
 	app := tview.NewApplication()
 	pages := tview.NewPages()
+	jobView := NewJobView("job", pages)
 
-	newJob := tview.NewForm()
-	newJob.SetTitle("Create job")
-	newJob.SetBorder(true)
-	newJob.AddInputField("Input file", "", 90, nil, nil)
-	newJob.AddButton("Create job", func() {
-		pages.SwitchToPage("main")
-	})
-	newJob.AddButton("Cancel",  func() {
-		pages.SwitchToPage("main")
-	})
-	
+	newJob := NewJobCreate("newJob", pages)
 	app.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		if event.Rune() == 'N' {
-			x,y,w,h := pages.GetRect()
-			newJob.SetRect(x+2,y+2,w-4,h-4)
-			pages.ShowPage("newJob")
+			newJob.Show()
 		}
 		if event.Key() == tcell.KeyEscape {
 			pages.SwitchToPage("main")
@@ -96,23 +145,12 @@ func main() {
 		return event
 	})
 
-
-	profiles := []string {"program", "x264-1080p-medium"}
-	newJob.AddDropDown("Profile", profiles, 0, nil)
 	
 	table := tview.NewTable().SetContent(&jobsTable).SetSelectable(true, false)
 	table.SetSelectedFunc(func(row int, column int) {
 		job := jobsTable.jobs[row]
 		//		jobJson,_ := json.MarshalIndent(job, "", "  ")
-		jobJson,_ := yaml.Marshal(job)
-		jobView.SetTitle(fmt.Sprintf("Job %s", job.Id))
-		x,y,w,h := pages.GetRect()
-		jobView.Clear()
-		writer := tview.ANSIWriter(jobView)
-		quick.Highlight(writer, fmt.Sprint(string(jobJson)), "yaml", "terminal256", "dracula")
-		//		jobView.SetText(string(jobJson))
-		jobView.SetRect(x+2,y+2,w-4,h-4)
-		pages.ShowPage("job")
+		jobView.Show(job)
 	})
 	updated := tview.NewTextView().SetSize(1,0).SetLabel("Last updated:  ")
 	flex := tview.NewFlex()
@@ -124,7 +162,7 @@ func main() {
 
 
 	pages.AddPage("main", flex, true, true)
-	pages.AddPage("job", jobView, false, false)
+	pages.AddPage(jobView.name, jobView, false, false)
 	pages.AddPage("newJob", newJob, false, false)
 
 	
