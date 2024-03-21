@@ -119,7 +119,7 @@ func (jc *JobCreate) PostJob() {
 	input := jc.GetFormItemByLabel("Input file").(*tview.InputField).GetText()
 	_, profile := jc.GetFormItemByLabel("Profile").(*tview.DropDown).GetCurrentOption()
 	job := CreateJob(input, profile)
-	_, err := encoreClient.postJob(job)
+	err := encoreClient.postJob(job)
 	if err != nil {
 		panic(err)
 	}
@@ -128,23 +128,11 @@ func (jc *JobCreate) PostJob() {
 
 func main() {
 	var jobsTable JobsTable
-
 	app := tview.NewApplication()
 	pages := tview.NewPages()
 	jobView := NewJobView("job", pages)
 
 	newJob := NewJobCreate("newJob", pages)
-	app.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-		if event.Rune() == 'N' {
-			newJob.Show()
-		}
-		if event.Key() == tcell.KeyEscape {
-			pages.SwitchToPage("main")
-			return nil
-		}
-		return event
-	})
-
 	
 	table := tview.NewTable().SetContent(&jobsTable).SetSelectable(true, false)
 	table.SetSelectedFunc(func(row int, column int) {
@@ -152,21 +140,63 @@ func main() {
 		//		jobJson,_ := json.MarshalIndent(job, "", "  ")
 		jobView.Show(job)
 	})
+
 	updated := tview.NewTextView().SetSize(1,0).SetLabel("Last updated:  ")
+	messages := tview.NewTextView().SetSize(1,0).SetText("some message")
+	statusRow := tview.NewFlex()
+	statusRow.AddItem(updated, 24, 0, false)
+	statusRow.AddItem(nil, 5, 0, false)
+	statusRow.AddItem(messages, 0, 1, true)
+
+	help := tview.NewTextView().
+		SetSize(1,0).
+		SetText(" [black:white]j/k[white:black] Up/Down  [black:white]Enter[white:black] View job  [black:white]C[white:black] Cancel job  [black:white]N[white:black] Create job (simple)  [black:white]^C[white:black] Quit").
+		SetDynamicColors(true)
+
+
 	flex := tview.NewFlex()
 	flex.SetTitle("Encore TUI")
 	flex.SetBorder(true)
 	flex.SetDirection(tview.FlexRow)
 	flex.AddItem(table, 0, 1, true)
-	flex.AddItem(updated, 1, 0, false)
+	flex.AddItem(help, 1, 0, false)
+	flex.AddItem(nil, 1, 0, false)
+	//	flex.AddItem(updated, 1, 0, false)
+	flex.AddItem(statusRow, 1, 0, false)
 
 
 	pages.AddPage("main", flex, true, true)
 	pages.AddPage(jobView.name, jobView, false, false)
 	pages.AddPage("newJob", newJob, false, false)
 
-	
+	app.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		if event.Key() == tcell.KeyEscape {
+			pages.SwitchToPage("main")
+			return nil
+		}
+		return event
+	})
 
+	table.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		if event.Rune() == 'N' {
+			newJob.Show()
+			return nil
+		}
+		if event.Rune() == 'C' {
+			row, _ := table.GetSelection()
+			job := jobsTable.jobs[row]
+			if *job.Status == "IN_PROGRESS" || *job.Status == "QUEUED" {
+				err := encoreClient.CancelJob(job.Id)
+				if err != nil {
+					messages.SetText(fmt.Sprintf("Error: %s", err))
+				}
+			} else {
+				messages.SetText(fmt.Sprintf("Cannot cancel job with status %s", *job.Status))
+			}
+			return nil
+		}
+		return event
+	})
 	
 	go getJobsRoutine(app, &jobsTable, updated)
 	if err := app.SetRoot(pages, true).SetFocus(pages).Run(); err != nil {

@@ -19,7 +19,7 @@ type JobsTable struct {
 
 func (d *JobsTable) GetCell(row, column int) *tview.TableCell {
 	if len(d.jobs) == 0 {
-		return tview.NewTableCell(fmt.Sprintf("data-%d", column))
+		return nil
 	}
 	job := d.jobs[row]
 	var content string

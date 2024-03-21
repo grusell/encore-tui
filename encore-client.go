@@ -29,6 +29,7 @@ func (ec *EncoreClient) getJobs() (*PagedModelEntityModelEncoreJob, error) {
 		return nil, err
 	}
 	body, err := ioutil.ReadAll(resp.Body)
+	resp.Body.Close()
 	if err != nil {
 		return nil, err
 	}
@@ -44,26 +45,30 @@ func (ec *EncoreClient) getJobs() (*PagedModelEntityModelEncoreJob, error) {
 	return &jobPage, nil
 }
 
-func (ec *EncoreClient) postJob(job EncoreJobRequestBody) (*EntityModelEncoreJob, error) {
+func (ec *EncoreClient) postJob(job EncoreJobRequestBody) error {
 	jsonVal, _ := json.Marshal(job)
 	resp, err := http.Post(ec.url + "/encoreJobs", "application/json", bytes.NewBuffer(jsonVal))
 	if err != nil {
-		return nil, err
+		return err
 	}
 	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-	fmt.Printf(string(body))
+	resp.Body.Close()
 	if resp.StatusCode != 201 {
-		return nil, errors.New(fmt.Sprintf("Failed to post job code=%d body=%s", resp.StatusCode, string(body)))
+		return errors.New(fmt.Sprintf("Failed to post job code=%d body=%s", resp.StatusCode, string(body)))
 	}
-	var createdJob EntityModelEncoreJob
-	err = json.Unmarshal(body, &createdJob)
+	return nil
+}
+
+func (ec *EncoreClient) CancelJob(jobId *uuid.UUID) error {
+	resp, err := http.Post(fmt.Sprintf("%s/encoreJobs/%s/cancel", ec.url, *jobId), "", nil)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	return &createdJob, nil
+	resp.Body.Close()
+	if resp.StatusCode != 204 {
+		return errors.New(fmt.Sprintf("Failed to cancel job code=%d", resp.StatusCode))
+	}
+	return nil
 }
 
 func CreateJob(inputUri string, profile string) EncoreJobRequestBody {
