@@ -1,27 +1,13 @@
 package main
 
 
-//go:generate go run github.com/deepmap/oapi-codegen/v2/cmd/oapi-codegen --config=config.yaml https://petstore3.swagger.io/api/v3/openapi.json
-//go:generate go run github.com/deepmap/oapi-codegen/v2/cmd/oapi-codegen --config=config.yaml encore-api.yaml
-
-
 import (
-	//	"log"
 	"fmt"
-
-	"encoding/json"
-	//	"net/url"
-	//	"path/filepath"
 	"time"
 	"os"
 	"github.com/rivo/tview"
 	"github.com/gdamore/tcell/v2"
-	"github.com/alecthomas/chroma/quick"
-	//	"gopkg.in/yaml.v3"
 	"strings"
-	"os/exec"
-	"errors"
-	//	"io/ioutil"
 )
 
 var encoreClient *EncoreClient = NewEncoreClient(getEnv("ENCORE_URL", "http://localhost:8080"))
@@ -55,29 +41,6 @@ func getJobsRoutine(app *tview.Application, jobsTable *JobsTable, updated *tview
 	}
 }
 
-/*
-func formatDate(date time.Time) string {
-	return fmt.Sprintf("%04d-%02d-%02d %02d:%02d",
-		date.Year(), date.Month(), date.Day(), date.Hour(), date.Minute())
-}
-*/
-
-type JsonView struct {
-	*tview.TextView
-}
-
-func NewJsonView() *JsonView {
-	jtv := JsonView{tview.NewTextView()}
-	jtv.SetDynamicColors(true)
-	return &jtv
-}
-
-func (jtv *JsonView) SetObj(obj interface{}) {
-	json,_ := json.MarshalIndent(obj, "", "  ")
-	jtv.Clear()
-	writer := tview.ANSIWriter(jtv)
-	quick.Highlight(writer, fmt.Sprint(string(json)), "json", "terminal256", "dracula")
-}
 
 type JobView struct {
 	name string
@@ -101,6 +64,8 @@ func (jv *JobView) Show(job *EntityModelEncoreJob) {
 	jv.SetRect(x+2,y+2,w-4,h-4)
 	jv.pages.ShowPage(jv.name)
 }
+
+/*
 
 type JobCreate struct {
 	name string
@@ -141,93 +106,7 @@ func (jc *JobCreate) PostJob() {
 		panic(err)
 	}
 }
-
-type JobCreateJson struct {
-	name string
-	*tview.Flex
-	text *JsonView
-	pages *tview.Pages
-	job *EncoreJobRequestBody
-	editFile func(string)
-}
-
-func NewJobCreateJson(name string, pages *tview.Pages, editFile func(string)) *JobCreateJson {
-	jc := JobCreateJson{name, tview.NewFlex(), NewJsonView(), pages, nil, editFile}
-	jc.Box = tview.NewBox()
-	jc.SetTitle("Create job")
-	jc.SetBorder(true)
-	jc.SetDirection(tview.FlexRow)
-	jc.AddItem(jc.text, 0, 1, true)
-
-	keys := []string{"e", "p", "c"}
-	descs := []string{"Edit job", "Post Job", "Cancel"}
-	helpRow := helpRow(keys, descs, 5)
-	jc.AddItem(helpRow, 1, 0, false)
-
-	jc.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-		if event.Rune() == 'c' {
-			pages.HidePage(name)
-			return nil
-		}
-		if event.Rune() == 'p' {
-			jc.PostJob()
-			pages.HidePage(name)
-			return nil
-		}
-		if event.Rune() == 'e' {
-			jc.EditJob()
-			return nil
-		}
-		return event
-	})
-
-	return &jc
-}
-
-func (jc *JobCreateJson) Show() {
-	job := CreateJob("", "")
-	job.Id = nil
-	job.OutputFolder = ""
-	jc.job = &job
-	//	text, _ := json.MarshalIndent(job, "", "  ")
-	//	jc.text.SetText(string(text))
-	jc.text.SetObj(&job)
-	x,y,w,h := jc.pages.GetRect()
-	jc.SetRect(x+2,y+2,w-4,h-4)
-	jc.pages.ShowPage(jc.name)
-}
-
-func (jc *JobCreateJson) EditJob() {
-	file, err := os.CreateTemp("", "encoreJob.*.json")
-	if err != nil {
-		panic(err)
-	}
-	jsonBytes,_ := json.MarshalIndent(*jc.job, "", "  ")
-	file.Write(jsonBytes)
-	file.Close()
-	defer os.Remove(file.Name())
-	jc.editFile(file.Name())
-	newJson,err := os.ReadFile(file.Name())
-	if err != nil {
-		panic(errors.New("Failed to read file: " + err.Error()))
-	}
-	//	jc.text.SetText(string(newJson))
-	
-	err = json.Unmarshal(newJson, jc.job)
-	if err != nil {
-		panic(errors.New("Failed to unmarshall: " + err.Error()))
-	}
-	jc.text.SetObj(jc.job)
-	
-}
-
-func (jc *JobCreateJson) PostJob() error {
-	err := encoreClient.postJob(*jc.job)
-	if err != nil {
-		panic(err)
-	}
-	return nil
-}
+*/
 
 func helpRow(keys []string, helpTexts []string, cmdsPerRow int) *tview.TextView{
 	rows := len(keys) / cmdsPerRow
@@ -248,7 +127,6 @@ func helpRow(keys []string, helpTexts []string, cmdsPerRow int) *tview.TextView{
 		SetSize(rows,0).
 		SetText(sb.String()).
 		SetDynamicColors(true)
-
 }
 
 
@@ -257,25 +135,10 @@ func helpRow(keys []string, helpTexts []string, cmdsPerRow int) *tview.TextView{
 func main() {
 	var jobsTable JobsTable
 	app := tview.NewApplication()
-
-
-	editFile := func(file string) {
-		app.Suspend(func() {
-			cmd := exec.Command("/usr/bin/vim", file)
-			cmd.Stdin = os.Stdin
-			cmd.Stdout = os.Stdout
-			if err := cmd.Run(); err != nil {
-				panic(err)
-			}
-			return
-		})
-	}
-	
+	externalEditor := NewExternalEditor(app)	
 	pages := tview.NewPages()
 	jobView := NewJobView("job", pages)
-
-	newJob := NewJobCreate("newJob", pages)
-	newJobJson := NewJobCreateJson("newJobJson", pages, editFile)
+	createJob := NewCreateJob("createJob", pages, externalEditor)
 	
 	table := tview.NewTable().SetContent(&jobsTable).SetSelectable(true, false)
 	table.SetSelectedFunc(func(row int, column int) {
@@ -310,8 +173,8 @@ func main() {
 
 	pages.AddPage("main", flex, true, true)
 	pages.AddPage(jobView.name, jobView, false, false)
-	pages.AddPage("newJob", newJob, false, false)
-	pages.AddPage("newJobJson", newJobJson, false, false)
+	//	pages.AddPage("newJob", newJob, false, false)
+	pages.AddPage("createJob", createJob, false, false)
 
 	app.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		if event.Key() == tcell.KeyEscape {
@@ -323,13 +186,13 @@ func main() {
 
 	table.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		if event.Rune() == 'n' {
-			newJobJson.Show()
+			createJob.Show()
 			return nil
 		}
-		if event.Rune() == 'N' {
+		/*		if event.Rune() == 'N' {
 			newJob.Show()
 			return nil
-		}
+		} */
 		if event.Rune() == 'C' {
 			row, _ := table.GetSelection()
 			job := jobsTable.jobs[row]

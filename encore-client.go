@@ -71,7 +71,7 @@ func (ec *EncoreClient) CancelJob(jobId *uuid.UUID) error {
 	return nil
 }
 
-func CreateJob(inputUri string, profile string) EncoreJobRequestBody {
+func NewEncoreJobRequestBody(inputUri string, profile string) EncoreJobRequestBody {
 	baseName := filepath.Base(inputUri)
 	id := uuid.New()
 	outputFolder := fmt.Sprintf("/tmp/%s", id)
