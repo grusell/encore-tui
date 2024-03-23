@@ -5,6 +5,8 @@ import (
 	"errors"
 	"github.com/gdamore/tcell/v2"
 	"encoding/json"
+	"fmt"
+	"strings"
 )
 
 type CreateJob struct {
@@ -12,71 +14,104 @@ type CreateJob struct {
 	*tview.Flex
 	text *JsonView
 	pages *tview.Pages
+	messages *tview.TextView
+	valid bool
 	externalEditor *ExternalEditor
 	job *EncoreJobRequestBody
 }
 
 func NewCreateJob(name string, pages *tview.Pages, externalEditor *ExternalEditor) *CreateJob {
-	jc := CreateJob{name, tview.NewFlex(), NewJsonView(), pages, externalEditor, nil}
-	jc.Box = tview.NewBox()
-	jc.SetTitle("Create job")
-	jc.SetBorder(true)
-	jc.SetDirection(tview.FlexRow)
-	jc.AddItem(jc.text, 0, 1, true)
+	cj := CreateJob{name, tview.NewFlex(), NewJsonView(), pages,
+		tview.NewTextView(), false, externalEditor, nil}
+	cj.Box = tview.NewBox()
+	cj.SetTitle("Create job")
+	cj.SetBorder(true)
+	cj.SetDirection(tview.FlexRow)
+	cj.AddItem(cj.text, 0, 1, true)
+
+	cj.messages.SetDynamicColors(true)
+	cj.AddItem(cj.messages, 2, 0, false)
 
 	keys := []string{"e", "p", "c"}
 	descs := []string{"Edit job", "Post Job", "Cancel"}
 	helpRow := helpRow(keys, descs, 5)
-	jc.AddItem(helpRow, 1, 0, false)
+	cj.AddItem(helpRow, 1, 0, false)
 
-	jc.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+	cj.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		if event.Rune() == 'c' {
 			pages.HidePage(name)
 			return nil
 		}
 		if event.Rune() == 'p' {
-			jc.PostJob()
-			pages.HidePage(name)
-			return nil
+			if cj.valid {
+				cj.PostJob()
+				pages.HidePage(name)
+				return nil
+			}
 		}
 		if event.Rune() == 'e' {
-			jc.EditJob()
+			cj.EditJob()
 			return nil
 		}
 		return event
 	})
 
-	return &jc
+	return &cj
 }
 
-func (jc *CreateJob) Show() {
+func (cj *CreateJob) Show() {
 	job := NewEncoreJobRequestBody("", "")
 	job.Id = nil
 	job.OutputFolder = ""
-	jc.job = &job
-	//	text, _ := json.MarshalIndent(job, "", "  ")
-	//	jc.text.SetText(string(text))
-	jc.text.SetObj(&job)
-	x,y,w,h := jc.pages.GetRect()
-	jc.SetRect(x+2,y+2,w-4,h-4)
-	jc.pages.ShowPage(jc.name)
+	cj.job = &job
+	cj.ValidateJob()
+	cj.text.SetObj(&job)
+	x,y,w,h := cj.pages.GetRect()
+	cj.SetRect(x+2,y+2,w-4,h-4)
+	cj.pages.ShowPage(cj.name)
 }
 
-func (jc *CreateJob) EditJob() {
-	jsonBytes,_ := json.MarshalIndent(*jc.job, "", "  ")
-	newJson, _ := jc.externalEditor.EditString(string(jsonBytes), ".json")
-	err := json.Unmarshal([]byte(newJson), jc.job)
+func (cj *CreateJob) EditJob() {
+	jsonBytes,_ := json.MarshalIndent(*cj.job, "", "  ")
+	newJson, _ := cj.externalEditor.EditString(string(jsonBytes), ".json")
+	err := json.Unmarshal([]byte(newJson), cj.job)
 	if err != nil {
 		panic(errors.New("Failed to unmarshall: " + err.Error()))
 	}
-	jc.text.SetObj(jc.job)
+	cj.text.SetObj(cj.job)
+	cj.ValidateJob()
 	
 }
 
-func (jc *CreateJob) PostJob() error {
-	err := encoreClient.postJob(*jc.job)
+func (cj *CreateJob) PostJob() error {
+	err := encoreClient.postJob(*cj.job)
 	if err != nil {
 		panic(err)
 	}
 	return nil
+}
+
+func (cj *CreateJob) ValidateJob() {
+	cj.valid = true
+	var messages []string
+	if cj.job.OutputFolder == "" {
+		messages = append(messages, "outputFolder not set")
+		cj.valid = false
+	}
+	if cj.job.BaseName == "" {
+		messages = append(messages, "baseName not set")
+		cj.valid = false
+	}
+	if cj.job.Profile == "" {
+		messages = append(messages, "profile not set")
+		cj.valid = false
+	}
+	for idx, input := range cj.job.Inputs {
+		if input.Uri == "" {
+			messages = append(messages, fmt.Sprintf("inputs[%d].uri not set", idx))
+			cj.valid = false
+		}
+	}
+	cj.messages.SetText(fmt.Sprintf("[red]%s", strings.Join(messages, ", ")))
+
 }

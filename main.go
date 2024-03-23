@@ -65,49 +65,6 @@ func (jv *JobView) Show(job *EntityModelEncoreJob) {
 	jv.pages.ShowPage(jv.name)
 }
 
-/*
-
-type JobCreate struct {
-	name string
-	*tview.Form
-	pages *tview.Pages
-}
-
-func NewJobCreate(name string, pages *tview.Pages) *JobCreate {
-	profiles := []string {"program", "x264-1080p-medium"}
-	jc := JobCreate{name, tview.NewForm(), pages}
-	jc.SetTitle("Create job")
-	jc.SetBorder(true)
-	jc.AddInputField("Input file", "", 90, nil, nil)
-	jc.AddDropDown("Profile", profiles, 0, nil)
-
-	jc.AddButton("Create job", func() {
-		jc.PostJob()
-		pages.HidePage(name)
-	})
-	jc.AddButton("Cancel",  func() {
-		pages.HidePage(name)
-	})
-	return &jc
-}
-
-func (jc *JobCreate) Show() {
-	x,y,w,h := jc.pages.GetRect()
-	jc.SetRect(x+2,y+2,w-4,h-4)
-	jc.pages.ShowPage(jc.name)
-}
-
-func (jc *JobCreate) PostJob() {
-	input := jc.GetFormItemByLabel("Input file").(*tview.InputField).GetText()
-	_, profile := jc.GetFormItemByLabel("Profile").(*tview.DropDown).GetCurrentOption()
-	job := CreateJob(input, profile)
-	err := encoreClient.postJob(job)
-	if err != nil {
-		panic(err)
-	}
-}
-*/
-
 func helpRow(keys []string, helpTexts []string, cmdsPerRow int) *tview.TextView{
 	rows := len(keys) / cmdsPerRow
 	if len(keys) % cmdsPerRow != 0 {
@@ -148,7 +105,7 @@ func main() {
 	})
 
 	updated := tview.NewTextView().SetSize(1,0).SetLabel("Last updated:  ")
-	messages := tview.NewTextView().SetSize(1,0).SetText("some message")
+	messages := tview.NewTextView().SetSize(1,0)
 	statusRow := tview.NewFlex()
 	statusRow.AddItem(updated, 24, 0, false)
 	statusRow.AddItem(nil, 5, 0, false)
@@ -156,7 +113,7 @@ func main() {
 
 	help := tview.NewTextView().
 		SetSize(1,0).
-		SetText(" [black:white]j/k[white:black] Up/Down  [black:white]Enter[white:black] View job  [black:white]C[white:black] Cancel job  [black:white]N[white:black] Create job (simple)  [black:white]^C[white:black] Quit").
+		SetText(" [black:white]j/k[white:black] Up/Down  [black:white]Enter[white:black] View job  [black:white]C[white:black] Cancel job  [black:white]n[white:black] create job  [black:white]^C[white:black] Quit").
 		SetDynamicColors(true)
 
 
