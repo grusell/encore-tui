@@ -23,7 +23,7 @@ func getEnv(key string, defaultValue string) string {
 }
 
 
-func getJobsRoutine(app *tview.Application, jobsTable *JobsTable, updated *tview.TextView) {
+func getJobsRoutine(app *tview.Application, jobsTable *JobsTableContent, updated *tview.TextView) {
 	for true {
 		jobs, err := encoreClient.getJobs()
 		if err != nil {
@@ -78,23 +78,10 @@ func NewKeyHelp(keyHelp []string) *tview.TextView{
 		SetDynamicColors(true)
 }
 
-
-
-
 func main() {
-	var jobsTable JobsTable
 	app := tview.NewApplication()
 	externalEditor := NewExternalEditor(app)	
 	pages := tview.NewPages()
-	jobView := NewJobView("job", pages)
-	createJob := NewCreateJob("createJob", pages, externalEditor)
-	
-	table := tview.NewTable().SetContent(&jobsTable).SetSelectable(true, false)
-	table.SetSelectedFunc(func(row int, column int) {
-		job := jobsTable.jobs[row]
-		//		jobJson,_ := json.MarshalIndent(job, "", "  ")
-		jobView.Show(&job)
-	})
 
 	updated := tview.NewTextView().SetSize(1,0).SetLabel("Last updated:  ")
 	messages := tview.NewTextView().SetSize(1,0)
@@ -102,6 +89,31 @@ func main() {
 	statusRow.AddItem(updated, 24, 0, false)
 	statusRow.AddItem(nil, 5, 0, false)
 	statusRow.AddItem(messages, 0, 1, true)
+
+	
+	jobView := NewJobView("job", pages)
+	createJob := NewCreateJob("createJob", pages, externalEditor)
+
+	jobActions := JobActions{
+		func(job *EntityModelEncoreJob) {
+			jobView.Show(job)
+		},
+		func() {
+			createJob.Show()
+		},
+		func(job *EntityModelEncoreJob) {
+			if *job.Status == "IN_PROGRESS" || *job.Status == "QUEUED" {
+				err := encoreClient.CancelJob(job.Id)
+				if err != nil {
+					messages.SetText(fmt.Sprintf("Error: %s", err))
+				}
+			} else {
+				messages.SetText(fmt.Sprintf("Cannot cancel job with status %s",
+					*job.Status))
+			}
+		},
+	}
+	table := NewJobsTable(jobActions)
 
 
 	keyDescriptions := []string{"j/k", "Up/Down", "Enter", "View job",  "C", "Cancel job",  "n", "New job",  "^C", "Quit"}
@@ -132,32 +144,8 @@ func main() {
 		return event
 	})
 
-	table.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-		if event.Rune() == 'n' {
-			createJob.Show()
-			return nil
-		}
-		/*		if event.Rune() == 'N' {
-			newJob.Show()
-			return nil
-		} */
-		if event.Rune() == 'C' {
-			row, _ := table.GetSelection()
-			job := jobsTable.jobs[row]
-			if *job.Status == "IN_PROGRESS" || *job.Status == "QUEUED" {
-				err := encoreClient.CancelJob(job.Id)
-				if err != nil {
-					messages.SetText(fmt.Sprintf("Error: %s", err))
-				}
-			} else {
-				messages.SetText(fmt.Sprintf("Cannot cancel job with status %s", *job.Status))
-			}
-			return nil
-		}
-		return event
-	})
 	
-	go getJobsRoutine(app, &jobsTable, updated)
+	go getJobsRoutine(app, table.content, updated)
 	if err := app.SetRoot(pages, true).SetFocus(pages).Run(); err != nil {
 		panic(err)
 	}

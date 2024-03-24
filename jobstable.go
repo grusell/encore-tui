@@ -7,9 +7,56 @@ import (
 	"net/url"
 	"time"
 	"github.com/rivo/tview"
+	"github.com/gdamore/tcell/v2"
 )
 
+type JobActions struct {
+	onViewJob func(*EntityModelEncoreJob)
+	onCreateJob func()
+	onCancelJob func(*EntityModelEncoreJob)
+}
+
 type JobsTable struct {
+	*tview.Table
+	content *JobsTableContent
+	jobActions JobActions
+}
+
+func NewJobsTable(jobActions JobActions) *JobsTable {
+	var jtc JobsTableContent
+	jt := JobsTable{tview.NewTable().SetSelectable(true, false), &jtc, jobActions}
+	jt.SetContent(&jtc)
+	jt.SetSelectedFunc(func(row int, column int) {
+		job := jtc.jobs[row]
+		//		jobJson,_ := json.MarshalIndent(job, "", "  ")
+		jobActions.onViewJob(&job)
+	})
+	jt.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		if event.Rune() == 'n' {
+			jt.jobActions.onCreateJob()
+			return nil
+		}
+
+		if event.Rune() == 'C' {
+			job := jt.GetSelectedJob()
+			jt.jobActions.onCancelJob(job)
+			return nil
+		}
+		return event
+	})
+	return &jt
+}
+
+
+func (jt *JobsTable) GetSelectedJob() *EntityModelEncoreJob {
+	if len(jt.content.jobs) == 0 {
+		return nil
+	}
+	row, _ := jt.GetSelection()
+	return &jt.content.jobs[row]
+}
+
+type JobsTableContent struct {
 	tview.TableContentReadOnly
 
 	// Nevermind the hard-coded values, this is just an example.
@@ -17,11 +64,12 @@ type JobsTable struct {
 	jobs []EntityModelEncoreJob
 }
 
-func (d *JobsTable) GetCell(row, column int) *tview.TableCell {
-	if len(d.jobs) == 0 {
+
+func (jtc *JobsTableContent) GetCell(row, column int) *tview.TableCell {
+	if len(jtc.jobs) == 0 {
 		return nil
 	}
-	job := d.jobs[row]
+	job := jtc.jobs[row]
 	var content string
 	switch column {
 	case 0:
@@ -44,20 +92,20 @@ func (d *JobsTable) GetCell(row, column int) *tview.TableCell {
 	return tview.NewTableCell(content)
 }
 
-func (d *JobsTable) GetRowCount() int {
-	if len(d.jobs) == 0 {
+func (jtc *JobsTableContent) GetRowCount() int {
+	if len(jtc.jobs) == 0 {
 		return 1
 	}
-	return len(d.jobs)
+	return len(jtc.jobs)
 }
 
-func (d *JobsTable) GetColumnCount() int {
+func (jtc *JobsTableContent) GetColumnCount() int {
 	// input, createdDate, status, profile, progress percent, progress
 	return 6
 }
 
-func (d *JobsTable) SetData(jobs []EntityModelEncoreJob) {
-	d.jobs = jobs
+func (jtc *JobsTableContent) SetData(jobs []EntityModelEncoreJob) {
+	jtc.jobs = jobs
 }
 
 func formatInputs(job EntityModelEncoreJob) string {
@@ -103,7 +151,7 @@ func formatProgressBar(job EntityModelEncoreJob) string {
 }
 
 /*
-func (d *JobsTable) AppendRow(row [5]string) {
+func (d *JobsTableContent) AppendRow(row [5]string) {
 	d.data[d.startIndex] = row
 	d.startIndex = (d.startIndex + 1) % 200
         }
