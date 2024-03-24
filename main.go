@@ -6,6 +6,7 @@ import (
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -23,47 +24,6 @@ func getEnv(key string, defaultValue string) string {
 
 var HandleError func(err error)
 
-func getJobsRoutine(app *tview.Application, jobsTable *JobsTableContent, updated *tview.TextView) {
-	for {
-		jobs, err := encoreClient.getJobs()
-		if err != nil {
-			HandleError(errors.New("Failed to fetch jobs: " + err.Error()))
-		} else {
-			app.QueueUpdateDraw(func() {
-				jobsTable.SetData(*jobs.Embedded.EncoreJobs)
-				t := time.Now()
-				updated.SetText(t.Format(time.TimeOnly))
-			})
-		}
-		for i := 0; i < 10; i++ {
-			time.Sleep(100 * time.Millisecond)
-		}
-	}
-}
-
-type JobView struct {
-	name string
-	*JsonView
-	pages *tview.Pages
-}
-
-func NewJobView(name string, pages *tview.Pages) *JobView {
-	//	tv := tview.NewTextView()
-	jv := JobView{name, NewJsonView(), pages}
-	jv.SetBorder(true)
-	return &jv
-}
-
-func (jv *JobView) Show(job *EntityModelEncoreJob) {
-	//		jobJson,_ := json.MarshalIndent(job, "", "  ")
-	//	jv.SetJob(job)
-	jv.SetTitle(fmt.Sprintf("Job %s", job.Id))
-	jv.SetObj(*job)
-	x, y, w, h := jv.pages.GetRect()
-	jv.SetRect(x+2, y+2, w-4, h-4)
-	jv.pages.ShowPage(jv.name)
-}
-
 func NewKeyHelp(keyHelp []string) *tview.TextView {
 	var sb strings.Builder
 	for i := 0; i < len(keyHelp)-1; i += 2 {
@@ -78,6 +38,12 @@ func NewKeyHelp(keyHelp []string) *tview.TextView {
 }
 
 func main() {
+	jobsPollIntervalStr := getEnv("POLL_INTERVAL", "10")
+	jobsPollInterval, err := strconv.Atoi(jobsPollIntervalStr)
+	if err != nil {
+		jobsPollInterval = 10
+	}
+
 	app := tview.NewApplication()
 	externalEditor := NewExternalEditor(app)
 	pages := tview.NewPages()
@@ -143,8 +109,20 @@ func main() {
 		return event
 	})
 
-	go getJobsRoutine(app, table.content, updated)
+	jobsPoller := NewJobsPoller(encoreClient, jobsPollInterval, func(jobs []EntityModelEncoreJob, err error) {
+		if err != nil {
+			HandleError(errors.New("Failed to fetch jobs: " + err.Error()))
+		} else {
+			app.QueueUpdateDraw(func() {
+				table.SetData(jobs)
+				t := time.Now()
+				updated.SetText(t.Format(time.TimeOnly))
+			})
+		}
+	})
+	jobsPoller.start()
 	if err := app.SetRoot(pages, true).SetFocus(pages).Run(); err != nil {
 		panic(err)
 	}
+
 }

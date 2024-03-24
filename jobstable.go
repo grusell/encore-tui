@@ -1,24 +1,24 @@
 package main
 
 import (
-	"strings"
-	"path/filepath"
 	"fmt"
-	"net/url"
-	"time"
-	"github.com/rivo/tview"
 	"github.com/gdamore/tcell/v2"
+	"github.com/rivo/tview"
+	"net/url"
+	"path/filepath"
+	"strings"
+	"time"
 )
 
 type JobActions struct {
-	onViewJob func(*EntityModelEncoreJob)
+	onViewJob   func(*EntityModelEncoreJob)
 	onCreateJob func()
 	onCancelJob func(*EntityModelEncoreJob)
 }
 
 type JobsTable struct {
 	*tview.Table
-	content *JobsTableContent
+	content    *JobsTableContent
 	jobActions JobActions
 }
 
@@ -47,13 +47,16 @@ func NewJobsTable(jobActions JobActions) *JobsTable {
 	return &jt
 }
 
-
 func (jt *JobsTable) GetSelectedJob() *EntityModelEncoreJob {
 	if len(jt.content.jobs) == 0 {
 		return nil
 	}
 	row, _ := jt.GetSelection()
 	return &jt.content.jobs[row]
+}
+
+func (jt *JobsTable) SetData(jobs []EntityModelEncoreJob) {
+	jt.content.jobs = jobs
 }
 
 type JobsTableContent struct {
@@ -63,7 +66,6 @@ type JobsTableContent struct {
 	//	data       [200][5]string
 	jobs []EntityModelEncoreJob
 }
-
 
 func (jtc *JobsTableContent) GetCell(row, column int) *tview.TableCell {
 	if len(jtc.jobs) == 0 {
@@ -87,8 +89,7 @@ func (jtc *JobsTableContent) GetCell(row, column int) *tview.TableCell {
 	default:
 		content = ""
 	}
-	
-		
+
 	return tview.NewTableCell(content)
 }
 
@@ -104,17 +105,13 @@ func (jtc *JobsTableContent) GetColumnCount() int {
 	return 6
 }
 
-func (jtc *JobsTableContent) SetData(jobs []EntityModelEncoreJob) {
-	jtc.jobs = jobs
-}
-
 func formatInputs(job EntityModelEncoreJob) string {
 	if len(job.Inputs) == 1 {
 		return filenameFromUrl(job.Inputs[0].Uri)
 	}
 	var inputs []string
 	for i := 0; i < len(job.Inputs); i++ {
-		inputs = append(inputs,filenameFromUrl(job.Inputs[i].Uri))
+		inputs = append(inputs, filenameFromUrl(job.Inputs[i].Uri))
 	}
 	return fmt.Sprintf("%v", inputs)
 }
@@ -133,21 +130,19 @@ func formatStatus(status *EntityModelEncoreJobStatus) string {
 	var color string = ""
 	switch *status {
 	case "SUCCESSFUL":
-		color="green"
+		color = "green"
 	case "FAILED":
-		color="red"
+		color = "red"
 	case "IN_PROGRESS":
-		color="blue"
+		color = "blue"
 	}
 	return fmt.Sprintf("[%s]%s", color, *status)
 }
 
-
-
 func formatProgressBar(job EntityModelEncoreJob) string {
-	ticks := int(*job.Progress) / 10;
+	ticks := int(*job.Progress) / 10
 	return strings.Repeat("#", ticks) +
-		strings.Repeat(" ", 10 - ticks)
+		strings.Repeat(" ", 10-ticks)
 }
 
 /*
