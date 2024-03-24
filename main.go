@@ -65,23 +65,15 @@ func (jv *JobView) Show(job *EntityModelEncoreJob) {
 	jv.pages.ShowPage(jv.name)
 }
 
-func helpRow(keys []string, helpTexts []string, cmdsPerRow int) *tview.TextView{
-	rows := len(keys) / cmdsPerRow
-	if len(keys) % cmdsPerRow != 0 {
-		rows++
-	}
+func NewKeyHelp(keyHelp []string) *tview.TextView{
 	var sb strings.Builder
-	for idx, key := range keys {
-		if idx % cmdsPerRow > 0 {
-			sb.WriteString("  ")
-		}
-		if idx < len(helpTexts) {
-			sb.WriteString(fmt.Sprintf("[black:white]%s[white:black] %s",
-				key, helpTexts[idx]))
-		}
+	for i := 0; i < len(keyHelp) - 1; i += 2 {
+		sb.WriteString(
+			fmt.Sprintf("  [black:white]%s[white:black] %s",
+				keyHelp[i], keyHelp[i+1]))
 	}
 	return tview.NewTextView().
-		SetSize(rows,0).
+		SetSize(1,0).
 		SetText(sb.String()).
 		SetDynamicColors(true)
 }
@@ -111,10 +103,9 @@ func main() {
 	statusRow.AddItem(nil, 5, 0, false)
 	statusRow.AddItem(messages, 0, 1, true)
 
-	help := tview.NewTextView().
-		SetSize(1,0).
-		SetText(" [black:white]j/k[white:black] Up/Down  [black:white]Enter[white:black] View job  [black:white]C[white:black] Cancel job  [black:white]n[white:black] create job  [black:white]^C[white:black] Quit").
-		SetDynamicColors(true)
+
+	keyDescriptions := []string{"j/k", "Up/Down", "Enter", "View job",  "C", "Cancel job",  "n", "New job",  "^C", "Quit"}
+	help := NewKeyHelp(keyDescriptions)
 
 
 	flex := tview.NewFlex()

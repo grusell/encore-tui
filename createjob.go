@@ -32,9 +32,9 @@ func NewCreateJob(name string, pages *tview.Pages, externalEditor *ExternalEdito
 	cj.messages.SetDynamicColors(true)
 	cj.AddItem(cj.messages, 2, 0, false)
 
-	keys := []string{"e", "p", "c"}
-	descs := []string{"Edit job", "Post Job", "Cancel"}
-	helpRow := helpRow(keys, descs, 5)
+	keyDescriptions := []string{"e", "Edit job", "p",  "Post Job", "c,Esc", "Cancel",}
+
+	helpRow := NewKeyHelp(keyDescriptions)
 	cj.AddItem(helpRow, 1, 0, false)
 
 	cj.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
