@@ -1,28 +1,30 @@
 package main
 
 import (
-	"github.com/rivo/tview"
-	"errors"
-	"github.com/gdamore/tcell/v2"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"github.com/gdamore/tcell/v2"
+	"github.com/rivo/tview"
 	"strings"
 )
 
 type CreateJob struct {
 	name string
 	*tview.Flex
-	text *JsonView
-	pages *tview.Pages
-	messages *tview.TextView
-	valid bool
+	text           *JsonView
+	pages          *tview.Pages
+	messages       *tview.TextView
+	valid          bool
 	externalEditor *ExternalEditor
-	job *EncoreJobRequestBody
+	postJob        func(body *EncoreJobRequestBody) error
+	job            *EncoreJobRequestBody
 }
 
-func NewCreateJob(name string, pages *tview.Pages, externalEditor *ExternalEditor) *CreateJob {
+func NewCreateJob(name string, pages *tview.Pages, externalEditor *ExternalEditor,
+	postJob func(body *EncoreJobRequestBody) error) *CreateJob {
 	cj := CreateJob{name, tview.NewFlex(), NewJsonView(), pages,
-		tview.NewTextView(), false, externalEditor, nil}
+		tview.NewTextView(), false, externalEditor, postJob, nil}
 	cj.Box = tview.NewBox()
 	cj.SetTitle("Create job")
 	cj.SetBorder(true)
@@ -32,7 +34,7 @@ func NewCreateJob(name string, pages *tview.Pages, externalEditor *ExternalEdito
 	cj.messages.SetDynamicColors(true)
 	cj.AddItem(cj.messages, 2, 0, false)
 
-	keyDescriptions := []string{"e", "Edit job", "p",  "Post Job", "c,Esc", "Cancel",}
+	keyDescriptions := []string{"e", "Edit job", "p", "Post Job", "c,Esc", "Cancel"}
 
 	helpRow := NewKeyHelp(keyDescriptions)
 	cj.AddItem(helpRow, 1, 0, false)
@@ -44,8 +46,12 @@ func NewCreateJob(name string, pages *tview.Pages, externalEditor *ExternalEdito
 		}
 		if event.Rune() == 'p' {
 			if cj.valid {
-				cj.PostJob()
-				pages.HidePage(name)
+				err := cj.postJob(cj.job)
+				if err != nil {
+					cj.messages.SetText(fmt.Sprintf("Failed to create job: %s", err))
+				} else {
+					pages.HidePage(name)
+				}
 				return nil
 			}
 		}
@@ -66,13 +72,13 @@ func (cj *CreateJob) Show() {
 	cj.job = &job
 	cj.ValidateJob()
 	cj.text.SetObj(&job)
-	x,y,w,h := cj.pages.GetRect()
-	cj.SetRect(x+2,y+2,w-4,h-4)
+	x, y, w, h := cj.pages.GetRect()
+	cj.SetRect(x+2, y+2, w-4, h-4)
 	cj.pages.ShowPage(cj.name)
 }
 
 func (cj *CreateJob) EditJob() {
-	jsonBytes,_ := json.MarshalIndent(*cj.job, "", "  ")
+	jsonBytes, _ := json.MarshalIndent(*cj.job, "", "  ")
 	newJson, _ := cj.externalEditor.EditString(string(jsonBytes), ".json")
 	err := json.Unmarshal([]byte(newJson), cj.job)
 	if err != nil {
@@ -80,15 +86,7 @@ func (cj *CreateJob) EditJob() {
 	}
 	cj.text.SetObj(cj.job)
 	cj.ValidateJob()
-	
-}
 
-func (cj *CreateJob) PostJob() error {
-	err := encoreClient.postJob(*cj.job)
-	if err != nil {
-		panic(err)
-	}
-	return nil
 }
 
 func (cj *CreateJob) ValidateJob() {

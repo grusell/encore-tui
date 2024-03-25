@@ -41,7 +41,7 @@ func (ec *EncoreClient) post(url string, contentType string, body io.Reader) (*h
 }
 
 func (ec *EncoreClient) newRequest(method string, url string, body io.Reader) (*http.Request, error) {
-	req, err := http.NewRequest(method, url, nil)
+	req, err := http.NewRequest(method, url, body)
 	if err != nil {
 		return nil, err
 	}
@@ -77,7 +77,7 @@ func (ec *EncoreClient) getJobs() (*PagedModelEntityModelEncoreJob, error) {
 	return &jobPage, nil
 }
 
-func (ec *EncoreClient) postJob(job EncoreJobRequestBody) error {
+func (ec *EncoreClient) PostJob(job EncoreJobRequestBody) error {
 	jsonVal, _ := json.Marshal(job)
 	resp, err := ec.post(ec.url+"/encoreJobs", "application/json", bytes.NewBuffer(jsonVal))
 	if err != nil {

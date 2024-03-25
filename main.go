@@ -44,6 +44,7 @@ func main() {
 	if err != nil {
 		jobsPollInterval = 10
 	}
+	var jobsPoller *JobsPoller
 
 	app := tview.NewApplication()
 	externalEditor := NewExternalEditor(app)
@@ -63,8 +64,15 @@ func main() {
 	}
 
 	jobView := NewJobView("job", pages)
-	createJob := NewCreateJob("createJob", pages, externalEditor)
-	var jobsPoller *JobsPoller
+	createJob := NewCreateJob("createJob", pages, externalEditor,
+		func(job *EncoreJobRequestBody) error {
+			err := encoreClient.PostJob(*job)
+			if err == nil {
+				jobsPoller.Poll()
+			}
+			return err
+		})
+
 	jobActions := JobActions{
 		func(job *EntityModelEncoreJob) {
 			jobView.Show(job)
