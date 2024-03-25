@@ -5,14 +5,17 @@ import (
 )
 
 type JobsPoller struct {
-	encoreClient *EncoreClient
-	onUpdate     func([]EntityModelEncoreJob, error)
-	pollInterval int
+	encoreClient  *EncoreClient
+	onUpdate      func([]EntityModelEncoreJob, error)
+	ticker        *time.Ticker
+	updateChannel chan bool
 }
 
 func NewJobsPoller(encoreClient *EncoreClient, pollInterval int,
 	onUpdate func([]EntityModelEncoreJob, error)) *JobsPoller {
-	jp := JobsPoller{encoreClient, onUpdate, pollInterval}
+	jp := JobsPoller{encoreClient, onUpdate,
+		time.NewTicker(time.Duration(pollInterval) * time.Second),
+		make(chan bool)}
 	return &jp
 }
 
@@ -20,10 +23,17 @@ func (jp *JobsPoller) start() {
 	go jp.pollJobs()
 }
 
+func (jp *JobsPoller) Poll() {
+	jp.updateChannel <- true
+}
+
 func (jp *JobsPoller) pollJobs() {
 	for {
+		select {
+		case <-jp.updateChannel:
+		case <-jp.ticker.C:
+		}
 		jobs, err := encoreClient.getJobs()
 		jp.onUpdate(*jobs.Embedded.EncoreJobs, err)
-		time.Sleep(time.Duration(jp.pollInterval) * time.Second)
 	}
 }

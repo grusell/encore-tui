@@ -64,7 +64,7 @@ func main() {
 
 	jobView := NewJobView("job", pages)
 	createJob := NewCreateJob("createJob", pages, externalEditor)
-
+	var jobsPoller *JobsPoller
 	jobActions := JobActions{
 		func(job *EntityModelEncoreJob) {
 			jobView.Show(job)
@@ -88,6 +88,7 @@ func main() {
 			if err != nil {
 				HandleError(errors.New(fmt.Sprintf("Delete job failed: %s", err)))
 			}
+			jobsPoller.Poll()
 		},
 	}
 	table := NewJobsTable(jobActions)
@@ -117,7 +118,7 @@ func main() {
 		return event
 	})
 
-	jobsPoller := NewJobsPoller(encoreClient, jobsPollInterval, func(jobs []EntityModelEncoreJob, err error) {
+	jobsPoller = NewJobsPoller(encoreClient, jobsPollInterval, func(jobs []EntityModelEncoreJob, err error) {
 		if err != nil {
 			HandleError(errors.New("Failed to fetch jobs: " + err.Error()))
 		} else {
@@ -129,6 +130,7 @@ func main() {
 		}
 	})
 	jobsPoller.start()
+	jobsPoller.Poll()
 	if err := app.SetRoot(pages, true).SetFocus(pages).Run(); err != nil {
 		panic(err)
 	}
