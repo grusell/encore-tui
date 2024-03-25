@@ -14,6 +14,7 @@ type JobActions struct {
 	onViewJob   func(*EntityModelEncoreJob)
 	onCreateJob func()
 	onCancelJob func(*EntityModelEncoreJob)
+	onDeleteJob func(*EntityModelEncoreJob)
 }
 
 type JobsTable struct {
@@ -42,6 +43,13 @@ func NewJobsTable(jobActions JobActions) *JobsTable {
 			jt.jobActions.onCancelJob(job)
 			return nil
 		}
+
+		if event.Key() == tcell.KeyCtrlD {
+			job := jt.GetSelectedJob()
+			jt.jobActions.onDeleteJob(job)
+			return nil
+		}
+
 		return event
 	})
 	return &jt

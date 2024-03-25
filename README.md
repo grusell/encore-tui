@@ -16,9 +16,9 @@ go install github.com/grusell/encore-tui@latest
 
 ## Environment variables
 
-| env var | description | default value |
-| --- | --- | --- |
-| ENCORE_HOST | url to encore host | http://localhost:8080 |
+| env var             | description | default value |
+|---------------------| --- | --- |
+| ENCORE_URL          | url to encore host | http://localhost:8080 |
 | EDITOR, ETUI_EDITOR | editor to use for editing jobs | if not present, encore-tui will check for vim, nano and emacs in that order' |
 
 ## Running

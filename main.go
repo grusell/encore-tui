@@ -11,7 +11,8 @@ import (
 	"time"
 )
 
-var encoreClient *EncoreClient = NewEncoreClient(getEnv("ENCORE_URL", "http://localhost:8080"))
+var encoreClient *EncoreClient = NewEncoreClient(getEnv("ENCORE_URL", "http://localhost:8080"),
+	getEnv("ENCORE_AUTH_HEADER", ""))
 
 func getEnv(key string, defaultValue string) string {
 	val, ok := os.LookupEnv(key)
@@ -82,10 +83,17 @@ func main() {
 					*job.Status))
 			}
 		},
+		func(job *EntityModelEncoreJob) {
+			err := encoreClient.DeleteJob(job.Id)
+			if err != nil {
+				HandleError(errors.New(fmt.Sprintf("Delete job failed: %s", err)))
+			}
+		},
 	}
 	table := NewJobsTable(jobActions)
 
-	keyDescriptions := []string{"j/k", "Up/Down", "Enter", "View job", "C", "Cancel job", "n", "New job", "^C", "Quit"}
+	keyDescriptions := []string{"j/k", "Up/Down", "Enter", "View job", "C", "Cancel job", "n", "New job",
+		"^D", "Delete job", "^C", "Quit"}
 	help := NewKeyHelp(keyDescriptions)
 
 	flex := tview.NewFlex()
