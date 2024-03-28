@@ -78,7 +78,7 @@ func main() {
 			jobView.Show(job)
 		},
 		func() {
-			createJob.Show()
+			createJob.Show(nil)
 		},
 		func(job *EntityModelEncoreJob) {
 			if *job.Status == "IN_PROGRESS" || *job.Status == "QUEUED" {
@@ -98,11 +98,15 @@ func main() {
 			}
 			jobsPoller.Poll()
 		},
+		func(job *EntityModelEncoreJob) {
+			jobRequest := RequestFromJob(job)
+			createJob.Show(jobRequest)
+		},
 	}
 	table := NewJobsTable(jobActions)
 
 	keyDescriptions := []string{"j/k", "Up/Down", "Enter", "View job", "C", "Cancel job", "n", "New job",
-		"^D", "Delete job", "^C", "Quit"}
+		"d", "Duplicate job", "^D", "Delete job", "^C", "Quit"}
 	help := NewKeyHelp(keyDescriptions)
 
 	flex := tview.NewFlex()

@@ -8,7 +8,6 @@ import (
 	"github.com/google/uuid"
 	"io"
 	"net/http"
-	"path/filepath"
 	"strings"
 )
 
@@ -114,28 +113,4 @@ func (ec *EncoreClient) DeleteJob(jobId *uuid.UUID) error {
 		return errors.New(fmt.Sprintf("Failed to delete job code=%d", resp.StatusCode))
 	}
 	return nil
-}
-
-func NewEncoreJobRequestBody(inputUri string, profile string) EncoreJobRequestBody {
-	baseName := filepath.Base(inputUri)
-	id := uuid.New()
-	outputFolder := fmt.Sprintf("/tmp/%s", id)
-	input := Input{
-		Type:   "AudioVideo",
-		Uri:    inputUri,
-		Params: make(map[string]string),
-	}
-	inputs := []Input{
-		input,
-	}
-	return EncoreJobRequestBody{
-		BaseName:      strings.TrimSuffix(baseName, filepath.Ext(baseName)),
-		Id:            &id,
-		OutputFolder:  outputFolder,
-		Profile:       profile,
-		Inputs:        inputs,
-		ProfileParams: make(map[string]map[string]interface{}),
-		LogContext:    make(map[string]string),
-		Priority:      50,
-	}
 }

@@ -65,13 +65,13 @@ func NewCreateJob(name string, pages *tview.Pages, externalEditor *ExternalEdito
 	return &cj
 }
 
-func (cj *CreateJob) Show() {
-	job := NewEncoreJobRequestBody("", "")
-	job.Id = nil
-	job.OutputFolder = ""
-	cj.job = &job
+func (cj *CreateJob) Show(job *EncoreJobRequestBody) {
+	if job == nil {
+		job = NewEncoreJobRequestBody()
+	}
+	cj.job = job
 	cj.ValidateJob()
-	cj.text.SetObj(&job)
+	cj.text.SetObj(job)
 	x, y, w, h := cj.pages.GetRect()
 	cj.SetRect(x+2, y+2, w-4, h-4)
 	cj.pages.ShowPage(cj.name)

@@ -11,10 +11,11 @@ import (
 )
 
 type JobActions struct {
-	onViewJob   func(*EntityModelEncoreJob)
-	onCreateJob func()
-	onCancelJob func(*EntityModelEncoreJob)
-	onDeleteJob func(*EntityModelEncoreJob)
+	onViewJob      func(*EntityModelEncoreJob)
+	onCreateJob    func()
+	onCancelJob    func(*EntityModelEncoreJob)
+	onDeleteJob    func(*EntityModelEncoreJob)
+	onDuplicateJob func(*EntityModelEncoreJob)
 }
 
 type JobsTable struct {
@@ -37,7 +38,10 @@ func NewJobsTable(jobActions JobActions) *JobsTable {
 			jt.jobActions.onCreateJob()
 			return nil
 		}
-
+		if event.Rune() == 'd' {
+			jt.jobActions.onDuplicateJob(jt.GetSelectedJob())
+			return nil
+		}
 		if event.Rune() == 'C' {
 			job := jt.GetSelectedJob()
 			jt.jobActions.onCancelJob(job)

@@ -34,6 +34,10 @@ func (jp *JobsPoller) pollJobs() {
 		case <-jp.ticker.C:
 		}
 		jobs, err := encoreClient.getJobs()
-		jp.onUpdate(*jobs.Embedded.EncoreJobs, err)
+		if err != nil {
+			jp.onUpdate(nil, err)
+		} else {
+			jp.onUpdate(*jobs.Embedded.EncoreJobs, nil)
+		}
 	}
 }
