@@ -20,6 +20,7 @@ go install github.com/grusell/encore-tui@latest
 |---------------------| --- | --- |
 | ENCORE_URL          | url to encore host | http://localhost:8080 |
 | EDITOR, ETUI_EDITOR | editor to use for editing jobs | if not present, encore-tui will check for vim, nano and emacs in that order' |
+| ENCORE_AUTH_HEADER  | Auth editor to use against encore server, on format HEADER:VALUE |  |
 
 ## Running
 The app is started by executing `encore-tui` in a terminal.
@@ -29,5 +30,5 @@ Keyboard shortcuts are described in the app. Escape key is used to
 return to previous screen.
 
 ## License
-encore-tui is licensed with [GNU Public License v3](LICENSE)
+encore-tui is licensed with [GNU Public License v3](LICENSE). Relicensing with a later version of GNU Public License is allowed.
 
