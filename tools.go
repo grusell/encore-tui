@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2024 Gustav Grusell
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 // +build tools
  
 package main
