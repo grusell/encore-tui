@@ -1,6 +1,8 @@
 # encore-tui
 Terminal user interface for [encore video encoding engine](https://github.com/svt/encore)
 
+![screenshot](docs/encoretui.png)
+
 # Requirements
 * Go needs to be installed. For instructions on how to install Go,
 see [here](https://go.dev/doc/install).
