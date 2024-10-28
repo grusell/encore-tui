@@ -81,7 +81,7 @@ type EncoreJobRequestBody struct {
 	Profile string `json:"profile"`
 
 	// ProfileParams Properties for evaluation of spring spel expressions in profile
-	ProfileParams map[string]map[string]interface{} `json:"profileParams"`
+	ProfileParams map[string]any `json:"profileParams"`
 	// ProgressCallbackUri An url to which the progress status callback should be directed
 	ProgressCallbackUri *string `json:"progressCallbackUri"`
 
@@ -143,7 +143,7 @@ type EntityModelEncoreJob struct {
 	Profile string `json:"profile"`
 
 	// ProfileParams Properties for evaluation of spring spel expressions in profile
-	ProfileParams map[string]map[string]interface{} `json:"profileParams"`
+	ProfileParams map[string]any `json:"profileParams"`
 
 	// Progress The EncoreJob progress
 	Progress *int32 `json:"progress,omitempty"`

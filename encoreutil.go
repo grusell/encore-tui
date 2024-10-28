@@ -20,7 +20,7 @@ func NewEncoreJobRequestBody() *EncoreJobRequestBody {
 		OutputFolder:  "",
 		Profile:       "",
 		Inputs:        inputs,
-		ProfileParams: make(map[string]map[string]interface{}),
+		ProfileParams: make(map[string]any),
 		LogContext:    make(map[string]string),
 		Priority:      50,
 	}
@@ -42,7 +42,7 @@ func RequestFromJob(job *EntityModelEncoreJob) *EncoreJobRequestBody {
 	jobRequest.OutputFolder = job.OutputFolder
 	jobRequest.Priority = job.Priority
 	jobRequest.Profile = job.Profile
-	jobRequest.ProfileParams = deepcopy.Copy(job.ProfileParams).(map[string]map[string]interface{})
+	jobRequest.ProfileParams = deepcopy.Copy(job.ProfileParams).(map[string]any)
 	jobRequest.ProgressCallbackUri = job.ProgressCallbackUri
 	jobRequest.SeekTo = deepcopy.Copy(job.SeekTo).(*float64)
 	jobRequest.SegmentLength = deepcopy.Copy(job.SegmentLength).(*float64)
