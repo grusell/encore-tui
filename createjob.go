@@ -8,9 +8,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
+
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
-	"strings"
 )
 
 type CreateJob struct {
@@ -84,10 +85,12 @@ func (cj *CreateJob) Show(job *EncoreJobRequestBody) {
 func (cj *CreateJob) EditJob() {
 	jsonBytes, _ := json.MarshalIndent(*cj.job, "", "  ")
 	newJson, _ := cj.externalEditor.EditString(string(jsonBytes), ".json")
-	err := json.Unmarshal([]byte(newJson), cj.job)
+	var newJob EncoreJobRequestBody
+	err := json.Unmarshal([]byte(newJson), &newJob)
 	if err != nil {
 		panic(errors.New("Failed to unmarshall: " + err.Error()))
 	}
+	cj.job = &newJob
 	cj.text.SetObj(cj.job)
 	cj.ValidateJob()
 
