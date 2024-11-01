@@ -29,10 +29,7 @@ func NewEncoreJobRequestBody() *EncoreJobRequestBody {
 func RequestFromJob(job *EntityModelEncoreJob) *EncoreJobRequestBody {
 	jobRequest := NewEncoreJobRequestBody()
 	jobRequest.BaseName = job.BaseName
-	jobRequest.Duration = new(float64)
-	if job.Duration != nil {
-		*jobRequest.Duration = *job.Duration
-	}
+	jobRequest.Duration = job.Duration
 	jobRequest.ExternalId = job.ExternalId
 	jobRequest.Inputs = deepcopy.Copy(job.Inputs).([]Input)
 	for i := 0; i < len(jobRequest.Inputs); i++ {
