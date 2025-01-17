@@ -56,7 +56,7 @@ func (ec *EncoreClient) newRequest(method string, url string, body io.Reader) (*
 }
 
 func (ec *EncoreClient) getJobs() (*PagedModelEntityModelEncoreJob, error) {
-	resp, err := ec.get(ec.url + "/encoreJobs?sort=createdDate,desc")
+	resp, err := ec.get(ec.url + "/encoreJobs?size=400&sort=createdDate,desc")
 	if err != nil {
 		return nil, err
 	}
